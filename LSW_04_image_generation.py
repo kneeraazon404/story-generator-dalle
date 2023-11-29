@@ -5,8 +5,8 @@ and post the results to a webhook.
 
 import time
 import logging
-import requests
 from openai import OpenAI
+from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(
@@ -17,22 +17,13 @@ logging.basicConfig(
 client = OpenAI()
 
 
-def post_to_webhook(response):
-    """
-    Posts a given response to a predefined webhook.
-
-    :param response: The response to post, either as a string or a response object.
-    """
-    text_content = response if isinstance(response, str) else response.text
-    payload = {"response": text_content}
-    requests.post("https://webhook.site/LSW-process-logging", json=payload)
-
-
 def generate_images_from_prompts(image_prompts):
     """
     Generates images for a given set of prompts and posts them to a webhook.
+    Returns a dictionary of image URLs where the key is the prompt identifier.
 
     :param image_prompts: A dictionary of prompts where the key is a unique identifier for the prompt.
+    :return: A dictionary of generated image URLs.
     """
     images = {}
 
@@ -50,11 +41,18 @@ def generate_images_from_prompts(image_prompts):
                     quality="standard",
                     n=1,
                 )
-                images[prompt_key] = response.data[0].url
-                logging.info(
-                    f"Generated image URL for {prompt_key}: {images[prompt_key]}"
-                )
-                post_to_webhook(images[prompt_key])
+                image_url = response.data[0].url
+                images[prompt_key] = image_url
+                logging.info(f"Generated image URL for {prompt_key}: {image_url}")
+
+                try:
+                    post_to_webhook(image_url)
+                    logging.info(f"Posted image URL for {prompt_key} to webhook.")
+                except Exception as e:
+                    logging.error(
+                        f"Error posting image URL for {prompt_key} to webhook: {e}"
+                    )
+
                 break
             except Exception as e:
                 logging.error(f"Attempt {attempt + 1} failed for {prompt_key}: {e}")
@@ -66,6 +64,4 @@ def generate_images_from_prompts(image_prompts):
                     f"Failed to generate image for {prompt_key} after {max_attempts} attempts."
                 )
 
-    logging.info("All generated image URLs:")
-    for prompt_key, image_url in images.items():
-        logging.info(f"{prompt_key}: {image_url}")
+    return images

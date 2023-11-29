@@ -3,8 +3,10 @@ This script is the main orchestrator for a story and image generation process.
 It takes input from a JSON file, generates a story, a visual description, and images based on the provided data.
 
 """
-import dotenv
+import json
 import logging
+
+import dotenv
 import requests
 
 # Configure basic logging
@@ -13,13 +15,14 @@ logging.basicConfig(level=logging.INFO)
 # Load environment variables
 dotenv.load_dotenv()
 
+import re
+
 from LSW_00_Tripetto_to_List import convert_tripetto_json_to_lists
 from LSW_01_story_generation import generate_story
 from LSW_02_visual_configurator import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
 from LSW_04_image_generation import generate_images_from_prompts
-
-import re
+from extract_visual_descriptions import extract_visual_description
 
 
 # Function to post to a webhook
@@ -69,31 +72,36 @@ def main():
     book_data = generate_story(story_configuration)
     logging.info("Story generation completed.")
 
-    # Log the generated story
-    logging.info(f"Generated Story: {book_data}")
-
     # Generating visual description
     logging.info("Generating visual description based on configuration...")
     visual_description = generate_visual_description(visual_configuration)
     logging.info("Visual description generation completed.")
 
-    # Log the generated visual description
-    logging.info(f"Generated Visual Description: {visual_description}")
+    extracted_visual_description = extract_visual_description(visual_description)
 
     # Generate image prompts
     logging.info("Generating image prompts...")
     image_prompts = generate_image_prompts(book_data, visual_description)
     logging.info("Image prompt generation completed.")
 
-    #  Log the generated image prompts
-    logging.info(f"Generated Image Prompts: {image_prompts}")
-
     prompts_for_images = extract_output_image_prompts(image_prompts)
-    logging.info("Prompts for Images:", prompts_for_images)
+
     # Generate images from prompts
     logging.info("Generating images from prompts...")
-    generate_images_from_prompts(prompts_for_images)
+    image_urls = generate_images_from_prompts(prompts_for_images)
     logging.info("Image generation completed.")
+    # Write the outputs to a JSON file
+    # extracted_stories = extract_visual_description(visual_description)
+    output_data = {
+        "book_stories": book_data,
+        "visual_descriptions": extract_visual_description(visual_description),
+        "image_prompts": extract_output_image_prompts(image_prompts),
+        "image_urls": image_urls,
+    }
+    with open("JSON-Output.json", "w") as outfile:
+        json.dump(output_data, outfile, indent=4)
+
+    logging.info("All data saved to output_data.json")
 
 
 if __name__ == "__main__":

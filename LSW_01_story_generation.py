@@ -10,6 +10,7 @@ import logging
 import requests
 import dotenv
 import openai
+from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,17 +29,6 @@ second_assistant_id = "asst_7yhXnmwuWZlUoexb30l4hyv2"
 # Create a new thread for communication with the assistant
 threadResponse = openai.beta.threads.create()
 thread = threadResponse
-
-
-def post_to_webhook(response):
-    """
-    Posts a given response to a predefined webhook.
-
-    :param response: The response to post, either as a string or a response object.
-    """
-    text_content = response if isinstance(response, str) else response.text
-    payload = {"response": text_content}
-    requests.post("https://webhook.site/LSW-process-logging", json=payload)
 
 
 def generate_story(story_configuration):
@@ -84,7 +74,9 @@ def generate_story(story_configuration):
         )
 
         if book_data:
+            logging.info("Posting story to webhook...")
             post_to_webhook(book_data)
+            logging.info("Story posted to webhook.")
         else:
             logging.warning("No answer from OpenAI for story generation.")
             post_to_webhook("No answer from OpenAI for story generation.")
@@ -93,12 +85,3 @@ def generate_story(story_configuration):
     except Exception as e:
         logging.error(f"Error in story generation: {e}")
         return None
-
-
-if __name__ == "__main__":
-    story_config = "Your story configuration here"
-    generated_story = generate_story(story_config)
-    if generated_story:
-        logging.info(f"Story Generated: {generated_story}")
-    else:
-        logging.error("Failed to generate story.")
