@@ -6,7 +6,6 @@ and post the results to a webhook.
 import time
 import logging
 from openai import OpenAI
-from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(
@@ -44,14 +43,6 @@ def generate_images_from_prompts(image_prompts):
                 image_url = response.data[0].url
                 images[prompt_key] = image_url
                 logging.info(f"Generated image URL for {prompt_key}: {image_url}")
-
-                try:
-                    post_to_webhook(image_url)
-                    logging.info(f"Posted image URL for {prompt_key} to webhook.")
-                except Exception as e:
-                    logging.error(
-                        f"Error posting image URL for {prompt_key} to webhook: {e}"
-                    )
 
                 break
             except Exception as e:

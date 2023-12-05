@@ -70,14 +70,13 @@ def main():
     # Generating the story
     logging.info("Generating story based on configuration...")
     book_data = generate_story(story_configuration)
+    post_to_webhook(f"Book :  {book_data[0]} written.")
     logging.info("Story generation completed.")
 
     # Generating visual description
     logging.info("Generating visual description based on configuration...")
     visual_description = generate_visual_description(visual_configuration)
     logging.info("Visual description generation completed.")
-
-    extracted_visual_description = extract_visual_description(visual_description)
 
     # Generate image prompts
     logging.info("Generating image prompts...")
@@ -89,10 +88,14 @@ def main():
     # Generate images from prompts
     logging.info("Generating images from prompts...")
     image_urls = generate_images_from_prompts(prompts_for_images)
+    post_to_webhook(f"Images generated for the book  {book_data[0]}")
     logging.info("Image generation completed.")
     # Write the outputs to a JSON file
     # extracted_stories = extract_visual_description(visual_description)
     output_data = {
+        "orders": order,
+        "story_configurations": story_configuration,
+        "visual_configurations": visual_configuration,
         "book_stories": book_data,
         "visual_descriptions": extract_visual_description(visual_description),
         "image_prompts": extract_output_image_prompts(image_prompts),

@@ -2,13 +2,14 @@ import openai
 import os
 import time
 import logging
-
+import dotenv
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 
 # Load API key
-openai.api_key = os.environ["OPENAI_API_KEY"]
+dotenv.load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize OpenAI client
 client = openai.Client()
@@ -58,9 +59,6 @@ def generate_image_prompts(book_data, visual_data):
         )
 
         if assistant_response:
-            # Log the assistant's response including generated prompts
-            logging.info("Assistant's response with prompts:")
-
             return assistant_response
 
         else:

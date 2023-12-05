@@ -3,11 +3,14 @@ import os
 import time
 import json
 import logging
-
+import dotenv
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+
 # Load API key and initialize OpenAI client
+
+dotenv.load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.Client()
 

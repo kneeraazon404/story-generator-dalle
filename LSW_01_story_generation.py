@@ -7,16 +7,15 @@ import json
 import os
 import time
 import logging
-import requests
 import dotenv
 import openai
-from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
 dotenv.load_dotenv()
+
 
 # Load API key and initialize OpenAI client
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -72,14 +71,6 @@ def generate_story(story_configuration):
             ),
             None,
         )
-
-        if book_data:
-            logging.info("Posting story to webhook...")
-            post_to_webhook(book_data)
-            logging.info("Story posted to webhook.")
-        else:
-            logging.warning("No answer from OpenAI for story generation.")
-            post_to_webhook("No answer from OpenAI for story generation.")
 
         return book_data
     except Exception as e:
