@@ -1,9 +1,11 @@
-from flask import Flask, request, jsonify
-import json
 import logging
+import re
+
 import dotenv
 import requests
-import re
+from flask import Flask, jsonify, request
+
+from extract_visual_descriptions import extract_visual_description
 
 # Import your modules here
 from LSW_00_Tripetto_to_List import convert_tripetto_json_to_lists
@@ -11,7 +13,6 @@ from LSW_01_story_generation import generate_story
 from LSW_02_visual_configurator import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
 from LSW_04_image_generation import generate_images_from_prompts
-from extract_visual_descriptions import extract_visual_description
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -42,16 +43,22 @@ def extract_output_image_prompts(input_text):
     return output_image_prompts
 
 
-@app.route("/process-story", methods=["GET"])
+@app.route("/process-story", methods=["POST"])
 def process_story():
-    data = "JSON-Input_Tripetto.json"
     try:
+        data = request.json
+
         # Convert JSON data to lists
         (
             order,
             story_configuration,
             visual_configuration,
         ) = convert_tripetto_json_to_lists(data)
+
+        # log the order, story_configuration, and visual_configuration
+        logging.info(f"Order: {order}")
+        logging.info(f"Story Configuration: {story_configuration}")
+        logging.info(f"Visual Configuration: {visual_configuration}")
 
         # Process data
         logging.info("Generating story based on configuration...")
@@ -85,9 +92,6 @@ def process_story():
             "image_urls": image_urls,
         }
 
-        with open("output.json", "w") as f:
-            json.dump(output_data, f, indent=4)
-
         return jsonify(output_data)
 
     except Exception as e:
@@ -96,4 +100,4 @@ def process_story():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="127.0.0.1", port=9000)
+    app.run(debug=True, host="0.0.0.0", port=5000)

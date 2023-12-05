@@ -1,18 +1,12 @@
-import json
-
-
-def convert_tripetto_json_to_lists(file_path):
+def convert_tripetto_json_to_lists(data):
     """
-    Converts data from a JSON file at the given file path into structured lists
+    Converts data from a JSON object into structured lists
     for order, story configuration, and visual configuration.
 
-    :param file_path: Path to the JSON file containing the data.
+    :param data: A dictionary containing the JSON data.
     :return: A tuple containing three lists: order, story_configuration, and visual_configuration.
     """
     try:
-        with open(file_path, "r") as file:
-            data = json.load(file)
-
         # Extracting order information
         order = [
             {
@@ -104,9 +98,6 @@ def convert_tripetto_json_to_lists(file_path):
 
         return order, story_configuration, visual_configuration
 
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-        return [], [], []
-    except json.JSONDecodeError:
-        print(f"Error decoding JSON from file: {file_path}")
+    except KeyError as e:
+        print(f"Missing key in data: {e}")
         return [], [], []
