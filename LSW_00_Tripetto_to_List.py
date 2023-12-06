@@ -12,6 +12,7 @@ def convert_tripetto_json_to_lists(data):
             {
                 "user_id": data.get("userid", ""),
                 "date": data.get("tripettoCreateDate", ""),
+                "tripettoId": data.get("tripettoId", ""),
             }
         ]
 
