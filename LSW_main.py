@@ -79,17 +79,17 @@ def main():
     logging.info("Visual description generation completed.")
 
     # Generate image prompts
-    # logging.info("Generating image prompts...")
-    # image_prompts = generate_image_prompts(book_data, visual_description)
-    # logging.info("Image prompt generation completed.")
+    logging.info("Generating image prompts...")
+    image_prompts = generate_image_prompts(book_data, visual_description)
+    logging.info("Image prompt generation completed.")
 
-    # prompts_for_images = extract_output_image_prompts(image_prompts)
+    prompts_for_images = extract_output_image_prompts(image_prompts)
 
     # Generate images from prompts
-    # logging.info("Generating images from prompts...")
-    # image_urls = generate_images_from_prompts(prompts_for_images)
-    # post_to_webhook(f"Images generated for the book  {book_data[0]}")
-    # logging.info("Image generation completed.")
+    logging.info("Generating images from prompts...")
+    image_urls = generate_images_from_prompts(prompts_for_images)
+    post_to_webhook(f"Images generated for the book  {book_data[0]}")
+    logging.info("Image generation completed.")
     # Write the outputs to a JSON file
     # extracted_stories = extract_visual_description(visual_description)
     output_data = {
@@ -98,8 +98,8 @@ def main():
         "visual_configurations": visual_configuration,
         "book_stories": book_data,
         "visual_descriptions": extract_visual_description(visual_description),
-        # "image_prompts": extract_output_image_prompts(image_prompts),
-        # "image_urls": image_urls,
+        "image_prompts": extract_output_image_prompts(image_prompts),
+        "image_urls": image_urls,
     }
     with open("JSON-Output.json", "w") as outfile:
         json.dump(output_data, outfile, indent=4)

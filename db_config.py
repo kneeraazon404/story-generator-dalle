@@ -66,20 +66,20 @@ def process_story():
         post_to_webhook(f"Book :  {book_data[0]} written.")
         logging.info("Story generation completed.")
 
-        logging.info("Generating visual description based on configuration...")
-        visual_description = generate_visual_description(visual_configuration)
-        logging.info("Visual description generation completed.")
+        # logging.info("Generating visual description based on configuration...")
+        # visual_description = generate_visual_description(visual_configuration)
+        # logging.info("Visual description generation completed.")
 
-        logging.info("Generating image prompts...")
-        image_prompts = generate_image_prompts(book_data, visual_description)
-        logging.info("Image prompt generation completed.")
+        # logging.info("Generating image prompts...")
+        # image_prompts = generate_image_prompts(book_data, visual_description)
+        # logging.info("Image prompt generation completed.")
 
-        prompts_for_images = extract_output_image_prompts(image_prompts)
+        # prompts_for_images = extract_output_image_prompts(image_prompts)
 
-        logging.info("Generating images from prompts...")
-        image_urls = generate_images_from_prompts(prompts_for_images)
-        post_to_webhook(f"Images generated for the book  {book_data[0]}")
-        logging.info("Image generation completed.")
+        # logging.info("Generating images from prompts...")
+        # image_urls = generate_images_from_prompts(prompts_for_images)
+        # post_to_webhook(f"Images generated for the book  {book_data[0]}")
+        # logging.info("Image generation completed.")
 
         # Prepare output data
         output_data = {
@@ -87,9 +87,9 @@ def process_story():
             "story_configurations": story_configuration,
             "visual_configurations": visual_configuration,
             "book_stories": book_data,
-            "visual_descriptions": extract_visual_description(visual_description),
-            "image_prompts": extract_output_image_prompts(image_prompts),
-            "image_urls": image_urls,
+            # "visual_descriptions": extract_visual_description(visual_description),
+            # "image_prompts": extract_output_image_prompts(image_prompts),
+            # "image_urls": image_urls,
         }
 
         return jsonify(output_data)
