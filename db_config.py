@@ -4,7 +4,7 @@ import re
 import dotenv
 import requests
 from flask import Flask, jsonify, request
-
+import json
 from extract_visual_descriptions import extract_visual_description
 
 # Import your modules here
@@ -55,16 +55,25 @@ def process_story():
             visual_configuration,
         ) = convert_tripetto_json_to_lists(data)
 
+        output_data = {}
         # log the order, story_configuration, and visual_configuration
         logging.info(f"Order: {order}")
         logging.info(f"Story Configuration: {story_configuration}")
         logging.info(f"Visual Configuration: {visual_configuration}")
 
-        # Process data
+        output_data["order"] = order
+        output_data["story_configuration"] = story_configuration
+        output_data["visual_configuration"] = visual_configuration
+
         logging.info("Generating story based on configuration...")
         book_data = generate_story(story_configuration)
-        post_to_webhook(f"Book :  {book_data[0]} written.")
         logging.info("Story generation completed.")
+        # Check if book_data_str is not empty and is a valid JSON string
+
+        output_data["book_data"] = book_data
+        # post_to_webhook(f"Book :  {book_data} written.")
+        # # print(book_data)
+        # logging.info("Story generation completed.")
 
         # logging.info("Generating visual description based on configuration...")
         # visual_description = generate_visual_description(visual_configuration)
@@ -80,17 +89,6 @@ def process_story():
         # image_urls = generate_images_from_prompts(prompts_for_images)
         # post_to_webhook(f"Images generated for the book  {book_data[0]}")
         # logging.info("Image generation completed.")
-
-        # Prepare output data
-        output_data = {
-            "orders": order,
-            "story_configurations": story_configuration,
-            "visual_configurations": visual_configuration,
-            "book_stories": book_data,
-            # "visual_descriptions": extract_visual_description(visual_description),
-            # "image_prompts": extract_output_image_prompts(image_prompts),
-            # "image_urls": image_urls,
-        }
 
         return jsonify(output_data)
 

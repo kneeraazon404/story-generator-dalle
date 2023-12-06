@@ -35,7 +35,7 @@ def generate_story(story_configuration):
     Generates a story based on the provided story configuration using OpenAI's API.
 
     :param story_configuration: A string or JSON representing the story configuration.
-    :return: Generated story as a string.
+    :return: Generated story as a dictionary.
     """
     user_input = (
         json.dumps(story_configuration)
@@ -63,7 +63,7 @@ def generate_story(story_configuration):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
-        book_data = next(
+        story_response = next(
             (
                 m.content[0].text.value
                 for m in messages
@@ -72,7 +72,16 @@ def generate_story(story_configuration):
             None,
         )
 
-        return book_data
+        # Assuming the response is in JSON format, parse it into a dictionary
+        print(story_response)
+        if story_response:
+            # Remove 'book_data = ' from the beginning of the response
+            formatted_response = story_response.replace("book_data = ", "", 1).strip()
+            return json.loads(formatted_response)
+        else:
+            logging.error("No story response received")
+            return {}
+
     except Exception as e:
         logging.error(f"Error in story generation: {e}")
-        return None
+        return {}
