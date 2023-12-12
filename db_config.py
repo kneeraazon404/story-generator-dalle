@@ -63,6 +63,11 @@ def process_story():
 
         print(order, story_configuration, visual_configuration)
         # Generate story
+               # Save to database
+        existing_story = StoryData.query.filter_by(tripettoId=tripetto_id).first()
+        if existing_story:
+            return jsonify({'error': 'A story with this tripettoId already exists'}), 400
+
         book_data = generate_story(story_configuration)
 
         # Generate visual description
@@ -85,11 +90,7 @@ def process_story():
         image_urls = generate_images_from_prompts(prompts_for_images)
         print(image_urls)
 
-        # Save to database
-        existing_story = StoryData.query.filter_by(tripettoId=tripetto_id).first()
-        if existing_story:
-            return jsonify({'error': 'A story with this tripettoId already exists'}), 400
-
+ 
         # Save to database
         new_story_data = StoryData(
             tripettoId=tripetto_id,
