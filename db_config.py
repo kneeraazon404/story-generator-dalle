@@ -104,7 +104,11 @@ def process_story():
         db.session.commit()
 
         print("Story data saved to database" + str(new_story_data),"with tripetto_id" + str(tripetto_id)  )
-        return jsonify({'tripettoId': tripetto_id})
+        return jsonify({'tripettoId': tripetto_id},
+                       {'order': order},
+                       {'story_configuration': story_configuration},
+                       {'visual_configuration': visual_configuration},
+                       {'story': book_data})
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
@@ -122,9 +126,8 @@ def get_story_data(tripetto_id):
             'order': json.loads(story_data.order),
             'story_configuration': json.loads(story_data.story_configuration),
             'visual_configuration': json.loads(story_data.visual_configuration),
-            "story": json.loads(story_data.story),  # Corrected
-            'image_urls': json.loads(story_data.image_urls)
-        })
+            "story": json.loads(story_data.story)})  # Corrected
+           
     else:
         return jsonify({'error': 'Data not found'}), 404
 
