@@ -83,6 +83,9 @@ def process_story():
         tripetto_id = data.get('tripettoId')
         if not tripetto_id:
             return jsonify({'error': 'tripettoId is required'}), 400
+        
+        if StoryData.query.filter_by(tripettoId=tripetto_id).first():
+            return jsonify({'error': 'tripettoId already exists'}), 400
 
         # Convert Tripetto JSON to lists
         order, story_configuration, visual_configuration = convert_tripetto_json_to_lists(data)
