@@ -5,13 +5,13 @@ from threading import Thread
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 import dotenv
-
+from image_generator import ImageGenerator
+import asyncio
 # Import your custom modules
 from LSW_00_Tripetto_to_List import convert_tripetto_json_to_lists
 from LSW_01_story_generation import generate_story
 from LSW_02_visual_configurator import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
-from LSW_04_image_generation import generate_images_from_prompts
 from extract_visual_descriptions import extract_visual_description
 from extract_images import extract_output_image_prompts
 
@@ -42,35 +42,47 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         # Generate visual description
         visual_description = generate_visual_description(visual_configuration)
- 
+        print("Visual description generated")
+        print(visual_description)
 
         # Extract image prompts from visual description
         visual_descriptions = extract_visual_description(visual_description)
+        print("Visual descriptions extracted")
+        print(visual_descriptions)
 
         
         # Generate image prompts
         image_prompts = generate_image_prompts(story, visual_descriptions)
+        print("Image prompts generated")
+        print(image_prompts)
 
         # Extract image prompts from story
         extracted_image_prompts = extract_output_image_prompts(image_prompts)
+        print("Image prompts extracted")
+        print(extracted_image_prompts)
 
-        
-        # Generate images from prompts
-        image_urls = generate_images_from_prompts(extracted_image_prompts)
+        # Generate images
+        api_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
+        generator = ImageGenerator(api_key)
 
+        # Function to run the asynchronous tasks
+        async def run_async_tasks():
+            prompts = list(extracted_image_prompts.values())
+            image_uris = await generator.generate_images(prompts)
 
-        # Post image URLs to another endpoint
-        post_response = requests.post("https://littlestorywriter.com/process_story/", json={"image_urls": image_urls, "tripettoId": tripetto_id})
-        print("Thread finished")
+            for idx, image_uri in enumerate(image_uris):
+                if image_uri:
+                    page_label = f"page_{idx+1:02d}"
+                    post_payload = {"image_urls": {page_label: image_uri}, "tripettoId": tripetto_id}
+                    response = requests.post("https://littlestorywriter.com/process-story", json=post_payload)
+                    response.raise_for_status()
+                else:
+                    print(f"Failed to generate image for prompt: {prompts[idx]}")
 
-        post_response.raise_for_status()
+        # Run the asynchronous tasks
+        asyncio.run(run_async_tasks())
 
-        # Update the database with image URLs
-        existing_story = StoryData.query.filter_by(tripettoId=tripetto_id).first()
-        if existing_story:
-            existing_story.image_urls = json.dumps(image_urls)
-            db.session.commit()
-        
+        print("All images processed and posted")
 
     except Exception as e:
         logging.error(f"Error in generate_and_post_images: {e}")
