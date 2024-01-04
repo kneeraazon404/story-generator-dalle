@@ -64,6 +64,12 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         # Generate images
         api_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
         generator = ImageGenerator(api_key)
+        # Define the headers to be used in the POST request
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0'  # Replace with your actual User-Agent
+        }
+        url = 'https://littlestorywriter.com/img-upload'
 
         # Function to run the asynchronous tasks
         async def run_async_tasks():
@@ -74,14 +80,15 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
                 if image_uri:
                     page_label = f"page_{idx+1:02d}"
                     post_payload = {"image_urls": {page_label: image_uri}, "tripettoId": tripetto_id}
-                    response = requests.post("https://littlestorywriter.com/process-story", json=post_payload)
+                    
+                    # Use requests to send the POST request
+                    response = requests.post(url, json=post_payload, headers=headers)
                     response.raise_for_status()
                 else:
                     print(f"Failed to generate image for prompt: {prompts[idx]}")
 
         # Run the asynchronous tasks
         asyncio.run(run_async_tasks())
-
         print("All images processed and posted")
 
     except Exception as e:
