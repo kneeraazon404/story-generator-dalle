@@ -1,11 +1,4 @@
 def convert_tripetto_json_to_lists(data):
-    """
-    Converts data from a JSON object into structured lists
-    for order, story configuration, and visual configuration.
-
-    :param data: A dictionary containing the JSON data.
-    :return: A tuple containing three lists: order, story_configuration, and visual_configuration.
-    """
     try:
         # Extracting order information
         order = [
