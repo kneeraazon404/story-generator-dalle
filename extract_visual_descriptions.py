@@ -1,14 +1,17 @@
 import json
 
+
 class Text:
     def __init__(self, annotations, value):
         self.annotations = annotations
         self.value = value
 
+
 class MessageContentText:
     def __init__(self, text, type):
         self.text = text
         self.type = type
+
 
 def extract_visual_description(data):
     # Assuming 'data' is a list of MessageContentText objects
@@ -24,4 +27,3 @@ def extract_visual_description(data):
                 return None
 
     return None
-
