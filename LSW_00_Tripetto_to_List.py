@@ -87,6 +87,10 @@ def convert_tripetto_json_to_lists(data):
                         "",
                     ),
                 },
+                "illustration_style": data.get(
+                    "The final touch is the art. What illustration style shall capture the essence of this story?",
+                    "Pencil Sketches with Coloring",
+                ),
             }
         ]
 
