@@ -15,6 +15,7 @@ from LSW_02_visual_configurator import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
 from extract_visual_descriptions import extract_visual_description
 from extract_images import extract_output_image_prompts
+from post_to_webhook import post_to_webhook
 
 # Initialize Flask app
 dotenv.load_dotenv()
@@ -41,7 +42,14 @@ class StoryData(db.Model):
 
 
 # Function to handle visual description, image prompt generation, and image generation
-def generate_and_post_images(tripetto_id, story, visual_configuration):
+def generate_and_post_images(
+    tripetto_id,
+    order,
+    story_configuration,
+    story,
+    visual_configuration,
+):
+    log_data = {}
     try:
         # Generate visual description
         visual_description = generate_visual_description(visual_configuration)
@@ -52,6 +60,12 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         visual_descriptions = extract_visual_description(visual_description)
         print("Visual descriptions extracted")
         print(visual_descriptions)
+        log_data["tripettoId"] = tripetto_id
+        log_data["order"] = order
+        log_data["story_configuration"] = story_configuration
+        log_data["visual_configuration"] = visual_configuration
+        log_data["story"] = story
+        log_data["visual_descriptions"] = visual_descriptions
 
         # Generate image prompts
         image_prompts = generate_image_prompts(story, visual_descriptions)
@@ -62,6 +76,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         extracted_image_prompts = extract_output_image_prompts(image_prompts)
         print("Image prompts extracted")
         print(extracted_image_prompts)
+        log_data["image_prompts"] = extracted_image_prompts
 
         # Generate images
         api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
@@ -77,6 +92,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         async def run_async_tasks():
             prompts = list(extracted_image_prompts.values())
             image_uris = await generator.generate_images(prompts)
+            log_data["image_uris"] = image_uris
 
             for idx, image_uri in enumerate(image_uris):
                 if image_uri:
@@ -95,7 +111,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         # Run the asynchronous tasks
         asyncio.run(run_async_tasks())
         print("All images processed and posted")
-
+        post_to_webhook(log_data)
     except Exception as e:
         logging.error(f"Error in generate_and_post_images: {e}")
 
@@ -139,7 +155,13 @@ def process_story():
         print("Starting thread")
         thread = Thread(
             target=generate_and_post_images,
-            args=(tripetto_id, book_data, visual_configuration),
+            args=(
+                tripetto_id,
+                order,
+                story_configuration,
+                book_data,
+                visual_configuration,
+            ),
         )
         thread.start()
 
