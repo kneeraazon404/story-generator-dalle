@@ -42,14 +42,7 @@ class StoryData(db.Model):
 
 
 # Function to handle visual description, image prompt generation, and image generation
-def generate_and_post_images(
-    tripetto_id,
-    order,
-    story_configuration,
-    story,
-    visual_configuration,
-):
-    log_data = {}
+def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         # Generate visual description
         visual_description = generate_visual_description(visual_configuration)
@@ -60,12 +53,8 @@ def generate_and_post_images(
         visual_descriptions = extract_visual_description(visual_description)
         print("Visual descriptions extracted")
         print(visual_descriptions)
-        log_data["tripettoId"] = tripetto_id
-        log_data["order"] = order
-        log_data["story_configuration"] = story_configuration
-        log_data["visual_configuration"] = visual_configuration
-        log_data["story"] = story
-        log_data["visual_descriptions"] = visual_descriptions
+
+        post_to_webhook(visual_descriptions)
 
         # Generate image prompts
         image_prompts = generate_image_prompts(story, visual_descriptions)
@@ -76,7 +65,8 @@ def generate_and_post_images(
         extracted_image_prompts = extract_output_image_prompts(image_prompts)
         print("Image prompts extracted")
         print(extracted_image_prompts)
-        log_data["image_prompts"] = extracted_image_prompts
+
+        post_to_webhook(image_prompts)
 
         # Generate images
         api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
@@ -92,7 +82,11 @@ def generate_and_post_images(
         async def run_async_tasks():
             prompts = list(extracted_image_prompts.values())
             image_uris = await generator.generate_images(prompts)
-            log_data["image_uris"] = image_uris
+
+            image_uris = [image_uri for image_uri in image_uris if image_uri]
+            print("Image generation complete")
+            image_uris = {"image_uris": image_uris, "tripettoId": tripetto_id}
+            post_to_webhook(image_uris)
 
             for idx, image_uri in enumerate(image_uris):
                 if image_uri:
@@ -111,7 +105,7 @@ def generate_and_post_images(
         # Run the asynchronous tasks
         asyncio.run(run_async_tasks())
         print("All images processed and posted")
-        post_to_webhook(log_data)
+
     except Exception as e:
         logging.error(f"Error in generate_and_post_images: {e}")
 
@@ -148,6 +142,14 @@ def process_story():
             image_urls=json.dumps([]),
         )
 
+        log_data = {
+            "tripettoId": tripetto_id,
+            "order": order,
+            "story_configuration": story_configuration,
+            "visual_configuration": visual_configuration,
+            "story": book_data,
+        }
+        post_to_webhook(log_data)
         db.session.add(new_story_data)
         db.session.commit()
 
@@ -155,13 +157,7 @@ def process_story():
         print("Starting thread")
         thread = Thread(
             target=generate_and_post_images,
-            args=(
-                tripetto_id,
-                order,
-                story_configuration,
-                book_data,
-                visual_configuration,
-            ),
+            args=(tripetto_id, book_data, visual_configuration),
         )
         thread.start()
 
