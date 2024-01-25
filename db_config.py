@@ -78,34 +78,34 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         }
         url = "https://littlestorywriter.com/img-upload"
 
-        # Function to run the asynchronous tasks
         async def run_async_tasks():
             prompts = list(extracted_image_prompts.values())
             image_uris = await generator.generate_images(prompts)
 
-            image_uris = [image_uri for image_uri in image_uris if image_uri]
+            # Filter out empty URIs and create a dictionary with page labels
+            page_labels_with_uris = {
+                f"page_{idx+1:02d}": image_uri
+                for idx, image_uri in enumerate(image_uris)
+                if image_uri
+            }
             print("Image generation complete")
-            image_uris = {"image_uris": image_uris, "tripettoId": tripetto_id}
-            post_to_webhook(image_uris)
 
-            for idx, image_uri in enumerate(image_uris):
-                if image_uri:
-                    page_label = f"page_{idx+1:02d}"
-                    post_payload = {
-                        "image_urls": {page_label: image_uri},
-                        "tripettoId": tripetto_id,
-                    }
+            # Prepare the payload for posting
+            post_payload = {
+                "image_urls": page_labels_with_uris,
+                "tripettoId": tripetto_id,
+            }
 
-                    # Use requests to send the POST request
-                    response = requests.post(url, json=post_payload, headers=headers)
-                    response.raise_for_status()
-                else:
-                    print(f"Failed to generate image for prompt: {prompts[idx]}")
+            # Post to the webhook
+            post_to_webhook(post_payload)
+
+            # Use requests to send the POST request to the URL
+            response = requests.post(url, json=post_payload, headers=headers)
+            response.raise_for_status()
 
         # Run the asynchronous tasks
         asyncio.run(run_async_tasks())
         print("All images processed and posted")
-
     except Exception as e:
         logging.error(f"Error in generate_and_post_images: {e}")
 
