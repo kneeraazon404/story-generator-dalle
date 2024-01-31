@@ -72,10 +72,11 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         image_uris = await generator.generate_images(prompts)
 
         page_labels_with_uris = {
-            f"page_{idx+1:02d}": image_uri
+            f"page_{idx:02d}": image_uri
             for idx, image_uri in enumerate(image_uris)
             if image_uri
         }
+
         logging.info("Image generation complete")
 
         post_payload = {
