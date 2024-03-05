@@ -1,7 +1,7 @@
 import requests
 
 # URL to which the data is to be posted
-url = 'https://littlestorywriter.com/img-upload'
+url = "https://littlestorywriter.com/img-upload"
 
 # Data to be posted
 data = """
@@ -15,8 +15,8 @@ data = """
 
 # Headers
 headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0'  # Add the User-Agent you used in Postman
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0",  # Add the User-Agent you used in Postman
 }
 
 # Sending a POST request

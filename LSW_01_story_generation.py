@@ -22,7 +22,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.Client()
 
 # Define assistant IDs
-assistant_id = "asst_XgNDfaqQSzWKi0pWPdBnPJpp"
+assistant_id = "asst_7yhXnmwuWZlUoexb30l4hyv2"
 second_assistant_id = "asst_7yhXnmwuWZlUoexb30l4hyv2"
 
 # Create a new thread for communication with the assistant

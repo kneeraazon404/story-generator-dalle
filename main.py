@@ -27,6 +27,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+
 # Database model for story data
 class StoryData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +37,7 @@ class StoryData(db.Model):
     visual_configuration = db.Column(db.Text)
     story = db.Column(db.Text)
     image_urls = db.Column(db.Text)
+
 
 # Function to handle visual description, image prompt generation, and image generation
 def generate_and_post_images(tripetto_id, story, visual_configuration):
@@ -59,12 +61,8 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
 
     api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
 
-
     generator = ImageGenerator(api_key)
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
     url = "https://littlestorywriter.com/img-upload"
 
     async def run_async_tasks():
@@ -99,11 +97,13 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
     thread.join()
     logging.info("Image posting complete")
 
+
 # Global exception handler for the Flask app
 @app.errorhandler(Exception)
 def handle_exception(e):
     logging.error(f"An error occurred: {e}")
     return jsonify({"error": str(e)}), 500
+
 
 # Endpoint to process a story
 @app.route("/process-story", methods=["POST"])
@@ -117,7 +117,9 @@ def process_story():
         if StoryData.query.filter_by(tripettoId=tripetto_id).first():
             return jsonify({"error": "tripettoId already exists"}), 400
 
-        order, story_configuration, visual_configuration = convert_tripetto_json_to_lists(data)
+        order, story_configuration, visual_configuration = (
+            convert_tripetto_json_to_lists(data)
+        )
         book_data = generate_story(story_configuration)
 
         new_story_data = StoryData(
@@ -128,13 +130,15 @@ def process_story():
             story=json.dumps(book_data),
             image_urls=json.dumps([]),
         )
-        post_to_webhook({
-            "tripettoId": tripetto_id,
-            "order": order,
-            "story_configuration": story_configuration,
-            "visual_configuration": visual_configuration,
-            "story": book_data,
-        })
+        post_to_webhook(
+            {
+                "tripettoId": tripetto_id,
+                "order": order,
+                "story_configuration": story_configuration,
+                "visual_configuration": visual_configuration,
+                "story": book_data,
+            }
+        )
         db.session.add(new_story_data)
         db.session.commit()
 
@@ -144,15 +148,18 @@ def process_story():
         )
         thread.start()
 
-        return jsonify({
-            "tripettoId": tripetto_id,
-            "order": order,
-            "story_configuration": story_configuration,
-            "story": book_data,
-        })
+        return jsonify(
+            {
+                "tripettoId": tripetto_id,
+                "order": order,
+                "story_configuration": story_configuration,
+                "story": book_data,
+            }
+        )
 
     except Exception as e:
         return handle_exception(e)
+
 
 # Endpoint to retrieve story data
 @app.route("/get-story-data/<tripetto_id>", methods=["GET"])
@@ -160,19 +167,22 @@ def get_story_data(tripetto_id):
     try:
         story_data = StoryData.query.filter_by(tripettoId=tripetto_id).first()
         if story_data:
-            return jsonify({
-                "tripettoId": tripetto_id,
-                "order": json.loads(story_data.order),
-                "story_configuration": json.loads(story_data.story_configuration),
-                "visual_configuration": json.loads(story_data.visual_configuration),
-                "story": json.loads(story_data.story),
-                "image_urls": json.loads(story_data.image_urls),
-            })
+            return jsonify(
+                {
+                    "tripettoId": tripetto_id,
+                    "order": json.loads(story_data.order),
+                    "story_configuration": json.loads(story_data.story_configuration),
+                    "visual_configuration": json.loads(story_data.visual_configuration),
+                    "story": json.loads(story_data.story),
+                    "image_urls": json.loads(story_data.image_urls),
+                }
+            )
         else:
             return jsonify({"error": "Data not found"}), 404
 
     except Exception as e:
         return handle_exception(e)
+
 
 if __name__ == "__main__":
     with app.app_context():

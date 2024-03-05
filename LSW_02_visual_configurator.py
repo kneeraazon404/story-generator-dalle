@@ -15,7 +15,7 @@ dotenv.load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.Client()
 
-assistant_id = "asst_gKm83V9vbX6N1QtbJvrXUmk8"
+assistant_id = "asst_XgNDfaqQSzWKi0pWPdBnPJpp"
 
 
 def generate_visual_description(visual_configuration):
