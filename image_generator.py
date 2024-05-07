@@ -100,9 +100,9 @@ class ImageGenerator:
         image_uris = []
         async with aiohttp.ClientSession() as session:
             for prompt in prompts:
-                image_uri = await self.generate_and_select_image(prompt, session)
-                if image_uri:
+                try:
+                    image_uri = await self.generate_and_select_image(prompt, session)
                     image_uris.append(image_uri)
-                else:
-                    logging.error(f"Failed to generate image for prompt: {prompt}")
+                except Exception as e:
+                    logging.error(f"Error in generating image: {e}")
         return image_uris

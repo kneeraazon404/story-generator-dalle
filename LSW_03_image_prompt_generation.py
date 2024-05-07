@@ -14,7 +14,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Initialize OpenAI client
 client = openai.Client()
 
-assistant_id = "asst_XgNDfaqQSzWKi0pWPdBnPJpp"
+assistant_id = "asst_HeweYWXuh6Z0JnQN8WaJWZKy"
 
 
 def combine_data(book_data, visual_description):
