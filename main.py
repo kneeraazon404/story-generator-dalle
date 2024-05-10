@@ -110,6 +110,7 @@ def handle_exception(e):
 def process_story():
     try:
         data = request.json
+        print(data)
         tripetto_id = data.get("tripettoId")
         if not tripetto_id:
             return jsonify({"error": "tripettoId is required"}), 400
