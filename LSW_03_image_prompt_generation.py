@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import dotenv
+from openai import OpenAI
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -12,36 +13,73 @@ dotenv.load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize OpenAI client
-client = openai.Client()
+client = OpenAI()
 
-assistant_id = "asst_HeweYWXuh6Z0JnQN8WaJWZKy"
+assistant_id = "asst_rzk3LObUHyZh93kkJCtZMQeG"
+
+"""
+This script is designed to interact with the OpenAI API to generate stories based on a given configuration.
+It also includes functionality to post responses to a webhook for further processing or logging.
+"""
+
+import json
+import os
+import time
+import logging
+import dotenv
+import openai
+from openai import OpenAI
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Load environment variables
+dotenv.load_dotenv()
 
 
-def combine_data(book_data, visual_description):
-    """Combine book data and visual data into a series of prompts."""
-    combined_data = []
-    for story, visual in zip(book_data, visual_description):
-        prompt = f"Story: {story}\nVisual Description: {visual}"
-        combined_data.append(prompt)
-    return combined_data
+# Load API key and initialize OpenAI client
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI()
+
+# Define assistant IDs
+assistant_id = "asst_rzk3LObUHyZh93kkJCtZMQeG"
+# second_assistant_id = "asst_7yhXnmwuWZlUoexb30l4hyv2"
+
+# Create a new thread for communication with the assistant
+threadResponse = openai.beta.threads.create()
+thread = threadResponse
 
 
-def generate_image_prompts(book_data, visual_data):
-    responses = []
+def generate_image_prompts(book_data, visual_description):
+    """
+    Generates a story based on the provided story configuration using OpenAI's API.
 
-    combined_prompts = combine_data(book_data, visual_data)
+    :param book_data: A string or JSON representing the story configuration.
+    :param visual_description: A string or JSON representing the visual description.
+    :return: Generated story as a dictionary.
+    """
 
-    for prompt in combined_prompts:
-        thread = client.beta.threads.create()
+    # Convert inputs to JSON strings if they are not already strings
+    if not isinstance(book_data, str):
+        book_data = json.dumps(book_data)
+    if not isinstance(visual_description, str):
+        visual_description = json.dumps(visual_description)
 
+    user_input = (
+        f"{{'book_data': {book_data}, 'visual_description': {visual_description}}}"
+    )
+
+    try:
+        # Add user input as a message to the thread
         client.beta.threads.messages.create(
-            thread_id=thread.id, role="user", content=prompt
+            thread_id=thread.id, role="user", content=user_input
         )
 
+        # Run the assistant and wait for completion
         run = client.beta.threads.runs.create(
             thread_id=thread.id, assistant_id=assistant_id
         )
-
         while True:
             run_status = client.beta.threads.runs.retrieve(
                 thread_id=thread.id, run_id=run.id
@@ -50,18 +88,26 @@ def generate_image_prompts(book_data, visual_data):
                 break
             time.sleep(1)
 
+        # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
-        # Concatenate all message contents into a single string
-        assistant_response = " ".join(
-            msg.content.text.value if hasattr(msg.content, "text") else str(msg.content)
-            for msg in messages
-            if msg.role == "assistant"
+        # logging.info(f"Messages: {messages}")
+        story_response = next(
+            (
+                m.content[0].text.value
+                for m in messages
+                if m.role == "assistant" and m.content
+            ),
+            None,
         )
-
-        if assistant_response:
-            return assistant_response
-
+        logging.info(f"Generated story response: {story_response}")
+        if story_response:
+            # Remove 'book_data = ' from the beginning of the response
+            formatted_response = story_response.replace("book_data = ", "", 1).strip()
+            return json.loads(formatted_response)
         else:
-            logging.warning("No response for the prompt.")
+            logging.error("No story response received")
+            return {}
 
-    return responses
+    except Exception as e:
+        logging.error(f"Error in story generation: {e}")
+        return {}

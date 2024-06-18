@@ -1,19 +1,20 @@
 import logging
 import json
+import os
 import requests
+import asyncio
 from threading import Thread
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 import dotenv
-from image_generator import ImageGenerator
-import asyncio
 
-# Import your custom modules
+# Import custom modules
+from image_generator import ImageGenerator
 from LSW_00_Tripetto_to_List import convert_tripetto_json_to_lists
 from LSW_01_story_generation import generate_story
-from LSW_02_visual_configurator import generate_visual_description
+from LSW_02_visual_generation import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
-from extract_visual_descriptions import extract_visual_description
+from child_image_prompt_generator import generate_child_image_prompt
 from extract_images import extract_output_image_prompts
 from post_to_webhook import post_to_webhook
 
@@ -22,7 +23,7 @@ dotenv.load_dotenv()
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Configure the database using environment variables
+# Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
@@ -39,69 +40,117 @@ class StoryData(db.Model):
     image_urls = db.Column(db.Text)
 
 
-# Function to handle visual description, image prompt generation, and image generation
 def generate_and_post_images(tripetto_id, story, visual_configuration):
-    visual_desc = generate_visual_description(visual_configuration)
-    logging.info("Visual description generated")
+    try:
+        visual_descriptions = generate_visual_description(visual_configuration)
+        logging.info(f"Visual description generated: {visual_descriptions}")
 
-    visual_descriptions = extract_visual_description(visual_desc)
-    logging.info("Visual descriptions extracted")
+        post_to_webhook(
+            f"Visual descriptions stage 1 with tripetto id : {tripetto_id} and Visual Descriptions:  {visual_descriptions}"
+        )
 
-    post_to_webhook(visual_descriptions)
-    logging.info(f"Posted to Webhook: {visual_descriptions}")
+        child_prompt = generate_child_image_prompt(visual_descriptions)
+        logging.info(f"Child image prompt generated successfully: {child_prompt}")
 
-    img_prompts = generate_image_prompts(story, visual_descriptions)
-    logging.info("Image prompts generated")
+        if child_prompt:
+            post_to_webhook(f"Child image prompt: {child_prompt}")
+            mid_api_key = os.getenv("MID_API_KEY")
+            generator = ImageGenerator(mid_api_key)
 
-    image_prompts = extract_output_image_prompts(img_prompts)
-    logging.info("Image prompts extracted")
+            async def generate_and_post_child_image():
+                child_image_uris = await generator.generate_images(child_prompt)
+                logging.info("Child image generation complete")
 
-    post_to_webhook(image_prompts)
-    logging.info(f"Posted prompts to webhook: {image_prompts}")
+                if child_image_uris and child_image_uris[0]:
+                    child_image_uri = child_image_uris[0]
+                    child_image_payload = {
+                        "tripettoId": tripetto_id,
+                        "child_image_url": child_image_uri,
+                    }
+                    post_to_webhook(child_image_payload)
+                    logging.info(f"Posted child image to webhook: {child_image_uri}")
 
-    api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTgxMSwiZW1haWwiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwidXNlcm5hbWUiOiJuYWdlbC5icmVtZW5AZ21haWwuY29tIiwiaWF0IjoxNzAyODkzODIxfQ.FK9cfnILlaBYot1MRguTdt1_cBGTC0z92WikYoNtYd8"
+                    visual_descriptions_dict = json.loads(visual_descriptions)
+                    logging.debug(
+                        f"Visual descriptions dict before update: {visual_descriptions_dict}"
+                    )
 
-    generator = ImageGenerator(api_key)
-    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
-    url = "https://littlestorywriter.com/img-upload"
+                    if "child_character" in visual_descriptions_dict:
+                        visual_descriptions_dict["child_character"][
+                            "child_img_uri"
+                        ] = child_image_uri
+                    else:
+                        logging.error(
+                            "'child_character' key not found in visual_descriptions_dict"
+                        )
 
-    async def run_async_tasks():
-        prompts = list(image_prompts.values())
-        image_uris = await generator.generate_images(prompts)
+                    logging.info(
+                        f"Updated visual descriptions: {visual_descriptions_dict}"
+                    )
+                    post_to_webhook(
+                        f"Updated visual descriptions: {visual_descriptions_dict}"
+                    )
 
-        page_labels_with_uris = {
-            f"page_{idx:02d}": image_uri
-            for idx, image_uri in enumerate(image_uris)
-            if image_uri
-        }
+                    data = generate_image_prompts(story, visual_descriptions_dict)
+                    image_prompts = extract_output_image_prompts(data)
+                    post_to_webhook(f"Image prompts: {image_prompts}")
+                    logging.info("Posted image prompts to webhook: %s", image_prompts)
 
-        logging.info("Image generation complete")
+                    async def run_async_tasks():
+                        image_uris = await generator.generate_images(image_prompts)
+                        page_labels_with_uris = {
+                            f"page_{idx:02d}": image_uri
+                            for idx, image_uri in enumerate(image_uris)
+                            if image_uri
+                        }
 
-        post_payload = {
-            "image_urls": page_labels_with_uris,
-            "tripettoId": tripetto_id,
-        }
+                        logging.info("Image generation complete")
 
-        post_to_webhook(post_payload)
-        response = requests.post(url, json=post_payload, headers=headers)
-        response.raise_for_status()
+                        post_payload = {
+                            "image_urls": page_labels_with_uris,
+                            "tripettoId": tripetto_id,
+                        }
+                        headers = {
+                            "Content-Type": "application/json",
+                            "User-Agent": "Mozilla/5.0",
+                        }
+                        url = "https://littlestorywriter.com/img-upload"
 
-    def thread_target():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_async_tasks())
-        loop.close()
+                        post_to_webhook(post_payload)
+                        response = requests.post(
+                            url, json=post_payload, headers=headers
+                        )
+                        response.raise_for_status()
 
-    thread = Thread(target=thread_target)
-    thread.start()
-    thread.join()
-    logging.info("Image posting complete")
+                    def thread_target():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(run_async_tasks())
+                        loop.close()
+
+                    thread = Thread(target=thread_target)
+                    thread.start()
+                    thread.join()
+                    logging.info("Image posting complete")
+
+                else:
+                    logging.warning("No valid child image URI generated.")
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(generate_and_post_child_image())
+            loop.close()
+
+        else:
+            logging.warning("No valid child image prompt found.")
+    except Exception as e:
+        logging.error("An error occurred during image generation and posting: %s", e)
 
 
 # Global exception handler for the Flask app
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logging.error(f"An error occurred: {e}")
+    logging.error("An error occurred: %s", e)
     return jsonify({"error": str(e)}), 500
 
 
@@ -110,7 +159,6 @@ def handle_exception(e):
 def process_story():
     try:
         data = request.json
-        print(data)
         tripetto_id = data.get("tripettoId")
         if not tripetto_id:
             return jsonify({"error": "tripettoId is required"}), 400
@@ -122,6 +170,9 @@ def process_story():
             convert_tripetto_json_to_lists(data)
         )
         book_data = generate_story(story_configuration)
+        logging.info("==============================================")
+        logging.info(f"Book data generated: {book_data}")
+        logging.info("==============================================")
 
         new_story_data = StoryData(
             tripettoId=tripetto_id,
@@ -154,6 +205,7 @@ def process_story():
                 "tripettoId": tripetto_id,
                 "order": order,
                 "story_configuration": story_configuration,
+                "visual_configuration": visual_configuration,
                 "story": book_data,
             }
         )
@@ -166,20 +218,17 @@ def process_story():
 @app.route("/get-story-data/<tripetto_id>", methods=["GET"])
 def get_story_data(tripetto_id):
     try:
-        story_data = StoryData.query.filter_by(tripettoId=tripetto_id).first()
-        if story_data:
-            return jsonify(
-                {
-                    "tripettoId": tripetto_id,
-                    "order": json.loads(story_data.order),
-                    "story_configuration": json.loads(story_data.story_configuration),
-                    "visual_configuration": json.loads(story_data.visual_configuration),
-                    "story": json.loads(story_data.story),
-                    "image_urls": json.loads(story_data.image_urls),
-                }
-            )
-        else:
-            return jsonify({"error": "Data not found"}), 404
+        story_data = StoryData.query.filter_by(tripettoId=tripetto_id).first_or_404()
+        return jsonify(
+            {
+                "tripettoId": tripetto_id,
+                "order": json.loads(story_data.order),
+                "story_configuration": json.loads(story_data.story_configuration),
+                "visual_configuration": json.loads(story_data.visual_configuration),
+                "story": json.loads(story_data.story),
+                "image_urls": json.loads(story_data.image_urls),
+            }
+        )
 
     except Exception as e:
         return handle_exception(e)

@@ -1,13 +1,21 @@
-import re
+import json
 
 
-def extract_output_image_prompts(input_text):
-    # Use regular expressions to extract the image prompts in the specified format
-    matches = re.findall(r'"prompt_img_\d{2}": "(.*?)"', input_text)
+def extract_output_image_prompts(input_data):
+    """
+    Extracts image prompts from the provided dictionary.
 
-    # Create a dictionary of prompts
-    output_image_prompts = {
-        f"prompt_img_{i:02}": prompt for i, prompt in enumerate(matches)
-    }
+    :param input_data: Dictionary containing image prompts.
+    :return: List of extracted image prompts.
+    """
+    # Ensure input_data is a dictionary
+    if isinstance(input_data, str):
+        input_data = json.loads(input_data)
+
+    # Extract image prompts from the dictionary
+    image_prompts = input_data.get("image_prompts", [])
+
+    # Create a list of prompt values
+    output_image_prompts = [list(prompt.values())[0] for prompt in image_prompts]
 
     return output_image_prompts

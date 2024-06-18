@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 # Load API key and initialize OpenAI client
-
 dotenv.load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.Client()
@@ -29,6 +28,7 @@ def generate_visual_description(visual_configuration):
         # Create a new thread for communication with the assistant
         thread = client.beta.threads.create()
 
+        # Ensure the visual configuration is a JSON string
         user_input = (
             json.dumps(visual_configuration)
             if not isinstance(visual_configuration, str)
@@ -42,7 +42,6 @@ def generate_visual_description(visual_configuration):
         run = client.beta.threads.runs.create(
             thread_id=thread.id, assistant_id=assistant_id
         )
-        loop_counter = 0
 
         while True:
             run_status = client.beta.threads.runs.retrieve(
@@ -50,23 +49,60 @@ def generate_visual_description(visual_configuration):
             )
             if run_status.status == "completed":
                 break
-            if loop_counter % 3 == 0:
-                logging.info("...writing...")
-            loop_counter += 1
             time.sleep(1)
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
         assistant_response = next(
-            (msg.content for msg in messages if msg.role == "assistant"), None
+            (
+                m.content[0].text.value
+                for m in messages
+                if m.role == "assistant" and m.content
+            ),
+            None,
         )
 
-        return (
-            assistant_response
-            if assistant_response
-            else "No response from the assistant."
-        )
+        if assistant_response:
+            # logging.info(f"Assistant Response: {assistant_response}")
+            return assistant_response
+        else:
+            logging.warning("No response from the assistant.")
+            return "No response from the assistant."
 
     except Exception as e:
         logging.error(f"Error in generating visual description: {e}")
         return None
+
+
+#! Example usage -> Uncomment the following lines to test the function
+# visual_configuration = {
+#     "child_character": {
+#         "child_name": "Lilly",
+#         "child_gender": "Girl",
+#         "child_age": "5",
+#         "visuals": {
+#             "clothing": "She wears a bright pink dress with white polka dots and white sneakers with pink laces.",
+#             "other_features": "She wears a white headband with a bow on it.",
+#             "ethnicity": "Caucasian",
+#             "hair_color": "Platinum Blonde",
+#             "hair_length": "Long",
+#             "skin_tone": "Bright White",
+#         },
+#     },
+#     "companion": {
+#         "companion_name": "Jay Jay",
+#         "companion_gender": "Female",
+#         "companion_type": "Cat",
+#         "visuals": {
+#             "appearance": "Jay Jay is a fluffy gray cat with big green eyes and a small pink nose.",
+#             "other_features": "She has a white-tipped tail and white socks on her paws.",
+#         },
+#     },
+#     "illustration_style": [
+#         {
+#             "style": "cartoon clipart style, flat design with simple shapes and bright colors"
+#         }
+#     ],
+# }
+
+# generate_visual_description(visual_configuration)

@@ -67,7 +67,7 @@ class ImageGenerator:
         return None
 
     async def generate_and_select_image(self, prompt, session):
-        print("Generating image...")
+        logging.info(f"Generating image for prompt:  {prompt}")
         result = await self.mymidjourney_imagine(prompt, session)
         if not result or "messageId" not in result:
             logging.error("No messageId in the response from mymidjourney_imagine")
