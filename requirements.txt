@@ -10,8 +10,6 @@ click==8.1.7
 distro==1.8.0
 dnspython==2.4.2
 email-validator==2.1.0.post1
-fastapi==0.105.0
-fastapi-cli==0.0.2
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.4.1
