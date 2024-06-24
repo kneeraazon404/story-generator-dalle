@@ -46,7 +46,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
         logging.info(f"Visual description generated: {visual_descriptions}")
 
         post_to_webhook(
-            f"Visual descriptions stage 1 with tripetto id : {tripetto_id} and Visual Descriptions:  {visual_descriptions}"
+            f"Visual descriptions stage 1 with tripetto id: {tripetto_id} and Visual Descriptions: {visual_descriptions}"
         )
 
         child_prompt = generate_child_image_prompt(visual_descriptions)
