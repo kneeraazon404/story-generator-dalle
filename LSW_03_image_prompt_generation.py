@@ -4,6 +4,7 @@ import time
 import logging
 import dotenv
 from openai import OpenAI
+from post_to_webhook import post_to_webhook
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -70,6 +71,9 @@ def generate_image_prompts(book_data, visual_description):
         f"{{'book_data': {book_data}, 'visual_description': {visual_description}}}"
     )
 
+    post_to_webhook(f"Input Book Data: {book_data}")
+    post_to_webhook(f"Input Updated Visual Description: {visual_description}")
+
     try:
         # Add user input as a message to the thread
         client.beta.threads.messages.create(
@@ -90,6 +94,7 @@ def generate_image_prompts(book_data, visual_description):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
+        post_to_webhook(f"Assistant Response RAW: {messages}")
         # logging.info(f"Messages: {messages}")
         story_response = next(
             (

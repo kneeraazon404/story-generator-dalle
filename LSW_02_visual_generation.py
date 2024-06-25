@@ -4,6 +4,7 @@ import time
 import json
 import logging
 import dotenv
+from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +35,8 @@ def generate_visual_description(visual_configuration):
             if not isinstance(visual_configuration, str)
             else visual_configuration
         )
+
+        post_to_webhook(f"Input Visual Configuration: {visual_configuration}")
         client.beta.threads.messages.create(
             thread_id=thread.id, role="user", content=user_input
         )
@@ -53,6 +56,8 @@ def generate_visual_description(visual_configuration):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
+
+        post_to_webhook(f"Assistant Response RAW: {messages}")
         assistant_response = next(
             (
                 m.content[0].text.value
