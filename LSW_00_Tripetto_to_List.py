@@ -1,5 +1,7 @@
 import logging
 
+from post_to_webhook import post_to_webhook
+
 
 def convert_tripetto_json_to_lists(data):
     try:
@@ -53,10 +55,13 @@ def convert_tripetto_json_to_lists(data):
         logging.info("Data successfully converted to lists")
         logging.info(f"=============================================")
         logging.info(f"Order: {order}")
+        post_to_webhook(f"Parsed Order: {order}")
         logging.info(f"=============================================")
         logging.info(f"Story Configuration: {story_configuration}")
+        post_to_webhook(f"Parsed Story Configuration: {story_configuration}")
         logging.info(f"=============================================")
         logging.info(f"Visual Configuration: {visual_configuration}")
+        post_to_webhook(f"Parsed Visual Configuration: {visual_configuration}")
         logging.info(f"=============================================")
 
         return order, story_configuration, visual_configuration
@@ -70,33 +75,3 @@ def convert_tripetto_json_to_lists(data):
     except Exception as e:
         logging.error(f"Error in converting data to lists: {e}")
         return [], [], []
-
-
-# ! Example usage -> Uncomment to test
-# data_example = {
-#     "userid": "info@littlestorywriter.com",
-#     "child_name": "Lilly",
-#     "child_gender": "Girl",
-#     "child_age": "5",
-#     "companion_type": "Cat",
-#     "companion_name": "Jay Jay",
-#     "companion_gender": "female",
-#     "language_tone": "Adventurous and Exciting",
-#     "story_setting": "Outer Space",
-#     "story_theme": "Teamwork and Cooperation",
-#     "language": "british English",
-#     "child_ethnic": "Caucasian",
-#     "child_skin_tone": "bright white",
-#     "child_hair_color": "Platinum Blonde",
-#     "child_hair_length": "long",
-#     "illustration_style": "cartoon clipart style, flat design style with simple shapes and bright colors",
-#     "tripettoId": "ddddd",
-#     "tripettoIndex": 1,
-#     "tripettoCreateDate": "2024-05-27T11:02:15.000Z",
-#     "tripettoFingerprint": "bdf3fc64828300c45a67668a202a0e562d0503e18bedc17f9b9d7660e713a376",
-#     "tripettoFormReference": "c28a727a090f0de809baac3a242e4dec8fbd7cb055b6aee8ec400f6f91d3fda6",
-#     "tripettoFormName": "Book Configurator (Beta Testing)",
-# }
-
-
-# !convert_tripetto_json_to_lists(data_example)

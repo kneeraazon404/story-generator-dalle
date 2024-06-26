@@ -86,16 +86,10 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         visual_descriptions = generate_visual_description(visual_configuration)
         logging.info(f"Visual description generated: {visual_descriptions}")
-
-        post_to_webhook(
-            f"Visual descriptions stage 1 with tripetto id: {tripetto_id} and Visual Descriptions: {visual_descriptions}"
-        )
-
         visual_descriptions_dict = json.loads(visual_descriptions)
         logging.debug(
             f"Visual descriptions dict before transformation: {visual_descriptions_dict}"
         )
-
         if not is_in_desired_format(visual_descriptions_dict):
             visual_descriptions_dict = transform_to_desired_format(
                 visual_descriptions_dict
@@ -117,11 +111,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
 
                 if child_image_uris and child_image_uris[0]:
                     child_image_uri = child_image_uris[0]
-                    child_image_payload = {
-                        "tripettoId": tripetto_id,
-                        "child_image_url": child_image_uri,
-                    }
-                    post_to_webhook(child_image_payload)
+                    post_to_webhook(f"Child image URI generated: {child_image_uri}")
                     logging.info(f"Posted child image to webhook: {child_image_uri}")
 
                     updated_visual_descriptions = transform_to_desired_format(
@@ -149,7 +139,9 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
                         }
 
                         logging.info("Image generation complete")
-
+                        post_to_webhook(
+                            f"Image URIs generated: {page_labels_with_uris}"
+                        )
                         post_payload = {
                             "image_urls": page_labels_with_uris,
                             "tripettoId": tripetto_id,
@@ -202,6 +194,11 @@ def handle_exception(e):
 @app.route("/process-story", methods=["POST"])
 def process_story():
     try:
+        post_to_webhook("===========================================================")
+        post_to_webhook(
+            f"Logs for the new enrty with id: {request.json.get('tripettoId')}"
+        )
+        post_to_webhook("===========================================================")
         data = request.json
         tripetto_id = data.get("tripettoId")
         if not tripetto_id:
@@ -216,6 +213,7 @@ def process_story():
         book_data = generate_story(story_configuration)
         logging.info("==============================================")
         logging.info(f"Book data generated: {book_data}")
+        post_to_webhook(f"Book data generated: {book_data}")
         logging.info("==============================================")
 
         new_story_data = StoryData(
@@ -225,15 +223,6 @@ def process_story():
             visual_configuration=json.dumps(visual_configuration),
             story=json.dumps(book_data),
             image_urls=json.dumps([]),
-        )
-        post_to_webhook(
-            {
-                "tripettoId": tripetto_id,
-                "order": order,
-                "story_configuration": story_configuration,
-                "visual_configuration": visual_configuration,
-                "story": book_data,
-            }
         )
         db.session.add(new_story_data)
         db.session.commit()

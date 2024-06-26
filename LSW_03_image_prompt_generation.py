@@ -71,8 +71,10 @@ def generate_image_prompts(book_data, visual_description):
         f"{{'book_data': {book_data}, 'visual_description': {visual_description}}}"
     )
 
-    post_to_webhook(f"Input Book Data: {book_data}")
-    post_to_webhook(f"Input Updated Visual Description: {visual_description}")
+    post_to_webhook(f"Input Book Data for image prompt generation: {book_data}")
+    post_to_webhook(
+        f"Input Updated Visual Description for image prompt generation: {visual_description}"
+    )
 
     try:
         # Add user input as a message to the thread
