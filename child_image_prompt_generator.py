@@ -15,8 +15,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Initialize OpenAI client
 client = openai.OpenAI()
 
-assistant_id = "asst_n0SeDOyeHSA4NDI0gJtIuL8S"
-
+assistant_id = os.getenv("CHILD_ASSISTANT_ID")
 # Create a new thread for communication with the assistant
 thread_response = client.beta.threads.create()
 thread = thread_response

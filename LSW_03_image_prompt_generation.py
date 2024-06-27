@@ -16,7 +16,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Initialize OpenAI client
 client = OpenAI()
 
-assistant_id = "asst_rzk3LObUHyZh93kkJCtZMQeG"
+assistant_id = os.getenv("IMAGE_PROMPT_ASSISTANT_ID")
 
 """
 This script is designed to interact with the OpenAI API to generate stories based on a given configuration.
