@@ -4,31 +4,6 @@
 
 This project is a Flask-based API designed to process story data, generate visual descriptions, and create images using the MidJourney API. It integrates various custom modules for story generation, visual description configuration, and image prompt generation. The generated images are posted to a webhook and stored in a SQLite database.
 
-## Features
-
-- Convert Tripetto JSON data to lists for processing
-- Generate story content based on configurations
-- Create visual descriptions for story characters and scenes
-- Generate image prompts and use MidJourney API to create images
-- Post generated images and related data to a webhook
-- Store and retrieve story data, including generated images, from a SQLite database
-
-## Project Structure
-
-├── app.py # Main Flask application
-├── requirements.txt # Python dependencies
-├── .env # Environment variables
-├── image_generator.py # Image generation module
-├── LSW_00_Tripetto_to_List.py # Convert Tripetto JSON to lists
-├── LSW_01_story_generation.py # Generate story content
-├── LSW_02_visual_configurator.py# Generate visual descriptions
-├── LSW_03_image_prompt_generation.py # Generate image prompts
-├── extract_visual_descriptions.py # Extract visual descriptions
-├── child_image_prompt_generator.py # Generate child image prompt
-├── extract_images.py # Extract output image prompts
-├── post_to_webhook.py # Post data to webhook
-├── extract_child_image_prompt.py # Extract child image prompt
-
 ## Installation
 
 1. **Clone the repository:**
