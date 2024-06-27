@@ -57,7 +57,8 @@ def generate_visual_description(visual_configuration):
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
 
-        post_to_webhook(f"Assistant Response RAW: {messages}")
+        post_to_webhook(f"Assistant  Visual Description RAW: {messages}")
+        logging.info(f"Assistant  Visual Description RAW: {messages}")
         assistant_response = next(
             (
                 m.content[0].text.value
@@ -68,7 +69,8 @@ def generate_visual_description(visual_configuration):
         )
 
         if assistant_response:
-            # logging.info(f"Assistant Response: {assistant_response}")
+            logging.info(f"Assistant Response Parsed: {assistant_response}")
+            # post_to_webhook(f"Assistant Response Parsed: {assistant_response}")
             return assistant_response
         else:
             logging.warning("No response from the assistant.")
@@ -77,37 +79,3 @@ def generate_visual_description(visual_configuration):
     except Exception as e:
         logging.error(f"Error in generating visual description: {e}")
         return None
-
-
-#! Example usage -> Uncomment the following lines to test the function
-# visual_configuration = {
-#     "child_character": {
-#         "child_name": "Lilly",
-#         "child_gender": "Girl",
-#         "child_age": "5",
-#         "visuals": {
-#             "clothing": "She wears a bright pink dress with white polka dots and white sneakers with pink laces.",
-#             "other_features": "She wears a white headband with a bow on it.",
-#             "ethnicity": "Caucasian",
-#             "hair_color": "Platinum Blonde",
-#             "hair_length": "Long",
-#             "skin_tone": "Bright White",
-#         },
-#     },
-#     "companion": {
-#         "companion_name": "Jay Jay",
-#         "companion_gender": "Female",
-#         "companion_type": "Cat",
-#         "visuals": {
-#             "appearance": "Jay Jay is a fluffy gray cat with big green eyes and a small pink nose.",
-#             "other_features": "She has a white-tipped tail and white socks on her paws.",
-#         },
-#     },
-#     "illustration_style": [
-#         {
-#             "style": "cartoon clipart style, flat design with simple shapes and bright colors"
-#         }
-#     ],
-# }
-
-# generate_visual_description(visual_configuration)

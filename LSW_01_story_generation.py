@@ -10,6 +10,7 @@ import logging
 import dotenv
 import openai
 from openai import OpenAI
+from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,8 @@ def generate_story(story_configuration):
         else story_configuration
     )
 
+    post_to_webhook(f"Input story configuration: {story_configuration}")
+
     try:
         # Add user input as a message to the thread
         client.beta.threads.messages.create(
@@ -65,6 +68,7 @@ def generate_story(story_configuration):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
+        post_to_webhook(f"Story generation Response RAW: {messages}")
         story_response = next(
             (
                 m.content[0].text.value
@@ -77,6 +81,7 @@ def generate_story(story_configuration):
         if story_response:
             # Remove 'book_data = ' from the beginning of the response
             formatted_response = story_response.replace("book_data = ", "", 1).strip()
+            post_to_webhook(f"Formatted story response: {formatted_response}")
             return json.loads(formatted_response)
         else:
             logging.error("No story response received")
