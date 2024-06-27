@@ -233,12 +233,21 @@ def process_story():
         )
         thread.start()
 
+        logging.info(
+            jsonify(
+                {
+                    "tripettoId": tripetto_id,
+                    "order": order,
+                    "story_configuration": story_configuration,
+                    "visual_configuration": visual_configuration,
+                    "story": book_data,
+                }
+            )
+        )
+
         return jsonify(
             {
                 "tripettoId": tripetto_id,
-                "order": order,
-                "story_configuration": story_configuration,
-                "visual_configuration": visual_configuration,
                 "story": book_data,
             }
         )
