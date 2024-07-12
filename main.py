@@ -241,7 +241,7 @@ def process_story():
             "story": book_data,
         }
 
-        logging.info(jsonify(response_data))
+        # logging.info(jsonify(response_data))
 
         # Post the story to the webhook endpoint before returning
         endpoint_url = "https://littlestorywriter.com/process-story"

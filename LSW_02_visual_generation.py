@@ -9,7 +9,6 @@ from post_to_webhook import post_to_webhook
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-
 # Load API key and initialize OpenAI client
 dotenv.load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -29,14 +28,11 @@ def generate_visual_description(visual_configuration):
         # Create a new thread for communication with the assistant
         thread = client.beta.threads.create()
 
-        # Ensure the visual configuration is a JSON string
         user_input = (
             json.dumps(visual_configuration)
             if not isinstance(visual_configuration, str)
             else visual_configuration
         )
-
-        post_to_webhook(f"Input Visual Configuration: {visual_configuration}")
         client.beta.threads.messages.create(
             thread_id=thread.id, role="user", content=user_input
         )
@@ -45,6 +41,7 @@ def generate_visual_description(visual_configuration):
         run = client.beta.threads.runs.create(
             thread_id=thread.id, assistant_id=assistant_id
         )
+        loop_counter = 0
 
         while True:
             run_status = client.beta.threads.runs.retrieve(
@@ -52,29 +49,23 @@ def generate_visual_description(visual_configuration):
             )
             if run_status.status == "completed":
                 break
+            if loop_counter % 3 == 0:
+                logging.info("...writing...")
+            loop_counter += 1
             time.sleep(1)
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
-
-        post_to_webhook(f"Assistant  Visual Description RAW: {messages}")
-        logging.info(f"Assistant  Visual Description RAW: {messages}")
         assistant_response = next(
-            (
-                m.content[0].text.value
-                for m in messages
-                if m.role == "assistant" and m.content
-            ),
+            (msg.content[0].text.value for msg in messages if msg.role == "assistant"),
             None,
         )
 
-        if assistant_response:
-            logging.info(f"Assistant Response Parsed: {assistant_response}")
-            # post_to_webhook(f"Assistant Response Parsed: {assistant_response}")
-            return assistant_response
-        else:
-            logging.warning("No response from the assistant.")
-            return "No response from the assistant."
+        return (
+            assistant_response
+            if assistant_response
+            else "No response from the assistant."
+        )
 
     except Exception as e:
         logging.error(f"Error in generating visual description: {e}")
