@@ -196,7 +196,7 @@ def process_story():
     try:
         post_to_webhook("===========================================================")
         post_to_webhook(
-            f"Logs for the new enrty with id: {request.json.get('tripettoId')}"
+            f"Logs for the new entry with id: {request.json.get('tripettoId')}"
         )
         post_to_webhook("===========================================================")
         data = request.json
@@ -233,17 +233,22 @@ def process_story():
         )
         thread.start()
 
-        logging.info(
-            jsonify(
-                {
-                    "tripettoId": tripetto_id,
-                    "order": order,
-                    "story_configuration": story_configuration,
-                    "visual_configuration": visual_configuration,
-                    "story": book_data,
-                }
-            )
-        )
+        response_data = {
+            "tripettoId": tripetto_id,
+            "order": order,
+            "story_configuration": story_configuration,
+            "visual_configuration": visual_configuration,
+            "story": book_data,
+        }
+
+        # logging.info(jsonify(response_data))
+
+        # Post the story to the webhook endpoint before returning
+        endpoint_url = "https://littlestorywriter.com/process-story"
+        response = requests.post(endpoint_url, json=response_data)
+        logging.info(f"Response from webhook: {response.text}")
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to post to webhook"}), 500
 
         return jsonify(
             {
@@ -251,9 +256,9 @@ def process_story():
                 "story": book_data,
             }
         )
-
     except Exception as e:
-        return handle_exception(e)
+        logging.error(f"An error occurred: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
 
 
 # Endpoint to retrieve story data
