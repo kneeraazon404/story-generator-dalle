@@ -110,6 +110,9 @@ def generate_image_prompts(book_data, visual_description):
         if story_response:
             # Remove 'book_data = ' from the beginning of the response
             formatted_response = story_response.replace("book_data = ", "", 1).strip()
+            post_to_webhook(
+                f"Formatted story image prompts response: {formatted_response}"
+            )
             return json.loads(formatted_response)
         else:
             logging.error("No story response received")

@@ -5,6 +5,8 @@ import json
 import logging
 import dotenv
 
+from post_to_webhook import post_to_webhook
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -91,6 +93,7 @@ def generate_visual_description(visual_configuration):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
+        post_to_webhook(f"Visual generation Response RAW: {messages}")
         assistant_response = next(
             (msg.content[0].text.value for msg in messages if msg.role == "assistant"),
             None,
@@ -102,6 +105,7 @@ def generate_visual_description(visual_configuration):
             if assistant_response:
                 logging.info("Visual description generated successfully.")
                 assistant_response = convert_list_to_dict(assistant_response)
+                post_to_webhook(f"Visual description generated: {assistant_response}")
                 return assistant_response
             else:
                 raise ValueError("Error parsing assistant response JSON.")
