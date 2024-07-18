@@ -40,64 +40,12 @@ class StoryData(db.Model):
     image_urls = db.Column(db.Text)
 
 
-def is_in_desired_format(visual_descriptions_dict):
-    # Check if the visual descriptions are already in the desired format
-    return (
-        "child_character" in visual_descriptions_dict
-        and "companion" in visual_descriptions_dict
-        and "illustration_style" in visual_descriptions_dict
-    )
-
-
-def transform_to_desired_format(visual_descriptions_dict, child_image_uri=None):
-    # Transform the visual descriptions to the desired format
-    desired_format = {
-        "child_character": None,
-        "companion": None,
-        "illustration_style": None,
-    }
-
-    if "characters" in visual_descriptions_dict:
-        for character in visual_descriptions_dict.get("characters", []):
-            if "child_character" in character:
-                desired_format["child_character"] = character["child_character"]
-                if child_image_uri:
-                    desired_format["child_character"]["child_img_uri"] = child_image_uri
-            if "companion" in character:
-                desired_format["companion"] = character["companion"]
-    else:
-        if "child_character" in visual_descriptions_dict:
-            desired_format["child_character"] = visual_descriptions_dict[
-                "child_character"
-            ]
-            if child_image_uri:
-                desired_format["child_character"]["child_img_uri"] = child_image_uri
-        if "companion" in visual_descriptions_dict:
-            desired_format["companion"] = visual_descriptions_dict["companion"]
-
-    desired_format["illustration_style"] = visual_descriptions_dict.get(
-        "illustration_style", []
-    )
-
-    return desired_format
-
-
 def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         visual_descriptions = generate_visual_description(visual_configuration)
         logging.info(f"Visual description generated: {visual_descriptions}")
-        visual_descriptions_dict = json.loads(visual_descriptions)
-        logging.debug(
-            f"Visual descriptions dict before transformation: {visual_descriptions_dict}"
-        )
-        if not is_in_desired_format(visual_descriptions_dict):
-            visual_descriptions_dict = transform_to_desired_format(
-                visual_descriptions_dict
-            )
 
-        logging.info(f"Transformed visual descriptions: {visual_descriptions_dict}")
-
-        child_prompt = generate_child_image_prompt(json.dumps(visual_descriptions_dict))
+        child_prompt = generate_child_image_prompt(str(visual_descriptions))
         logging.info(f"Child image prompt generated successfully: {child_prompt}")
 
         if child_prompt:
@@ -114,9 +62,11 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
                     post_to_webhook(f"Child image URI generated: {child_image_uri}")
                     logging.info(f"Posted child image to webhook: {child_image_uri}")
 
-                    updated_visual_descriptions = transform_to_desired_format(
-                        visual_descriptions_dict, child_image_uri
-                    )
+                    # Update visual_descriptions dictionary correctly
+                    updated_visual_descriptions = {
+                        **visual_descriptions,
+                        "child_image_uri": child_image_uri,
+                    }
 
                     logging.info(
                         f"Updated visual descriptions: {updated_visual_descriptions}"

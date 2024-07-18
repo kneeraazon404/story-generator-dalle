@@ -4,7 +4,6 @@ import time
 import json
 import logging
 import dotenv
-from post_to_webhook import post_to_webhook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +16,41 @@ client = openai.Client()
 assistant_id = os.getenv("VISUAL_ASSISTANT_ID")
 
 
+def extract_json_from_string(json_string):
+    """
+    Extracts and parses JSON data from a JSON string.
+
+    :param json_string: A string representing JSON data.
+    :return: Parsed JSON data as a Python object (list or dict).
+    """
+    try:
+        # Clean the markdown markers if they exist
+        if json_string.startswith("```json") and json_string.endswith("```"):
+            json_string = json_string[7:-3].strip()
+        elif json_string.startswith("```") and json_string.endswith("```"):
+            json_string = json_string[3:-3].strip()
+
+        parsed_json = json.loads(json_string)
+        return parsed_json
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding JSON: {e}")
+        logging.error(f"Invalid JSON string: {json_string}")
+        return None
+
+
+def convert_list_to_dict(json_list):
+    """
+    Converts a list of dictionaries into a single dictionary.
+
+    :param json_list: A list of dictionaries.
+    :return: A single dictionary.
+    """
+    combined_dict = {}
+    for item in json_list:
+        combined_dict.update(item)
+    return combined_dict
+
+
 def generate_visual_description(visual_configuration):
     """
     Generates a visual description based on the provided visual configuration using OpenAI's API.
@@ -25,6 +59,7 @@ def generate_visual_description(visual_configuration):
     :return: Generated visual description as a string.
     """
     try:
+
         # Create a new thread for communication with the assistant
         thread = client.beta.threads.create()
 
@@ -61,11 +96,17 @@ def generate_visual_description(visual_configuration):
             None,
         )
 
-        return (
-            assistant_response
-            if assistant_response
-            else "No response from the assistant."
-        )
+        if assistant_response:
+            logging.info(f"Assistant response received: {assistant_response}")
+            assistant_response = extract_json_from_string(assistant_response)
+            if assistant_response:
+                logging.info("Visual description generated successfully.")
+                assistant_response = convert_list_to_dict(assistant_response)
+                return assistant_response
+            else:
+                raise ValueError("Error parsing assistant response JSON.")
+        else:
+            raise ValueError("No response from the assistant.")
 
     except Exception as e:
         logging.error(f"Error in generating visual description: {e}")
