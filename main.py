@@ -1,12 +1,16 @@
-import logging
-import json
-import os
-import requests
 import asyncio
+import json
+import logging
+import os
 from threading import Thread
+
+import dotenv
+import requests
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-import dotenv
+
+from child_image_prompt_generator import generate_child_image_prompt
+from extract_images import extract_output_image_prompts
 
 # Import custom modules
 from image_generator import ImageGenerator
@@ -14,8 +18,6 @@ from LSW_00_Tripetto_to_List import convert_tripetto_json_to_lists
 from LSW_01_story_generation import generate_story
 from LSW_02_visual_generation import generate_visual_description
 from LSW_03_image_prompt_generation import generate_image_prompts
-from child_image_prompt_generator import generate_child_image_prompt
-from extract_images import extract_output_image_prompts
 from post_to_webhook import post_to_webhook
 
 # Initialize Flask app and load environment variables
@@ -40,68 +42,21 @@ class StoryData(db.Model):
     image_urls = db.Column(db.Text)
 
 
-def is_in_desired_format(visual_descriptions_dict):
-    # Check if the visual descriptions are already in the desired format
-    return (
-        "child_character" in visual_descriptions_dict
-        and "companion" in visual_descriptions_dict
-        and "illustration_style" in visual_descriptions_dict
-    )
-
-
-def transform_to_desired_format(visual_descriptions_dict, child_image_uri=None):
-    # Transform the visual descriptions to the desired format
-    desired_format = {
-        "child_character": None,
-        "companion": None,
-        "illustration_style": None,
-    }
-
-    if "characters" in visual_descriptions_dict:
-        for character in visual_descriptions_dict.get("characters", []):
-            if "child_character" in character:
-                desired_format["child_character"] = character["child_character"]
-                if child_image_uri:
-                    desired_format["child_character"]["child_img_uri"] = child_image_uri
-            if "companion" in character:
-                desired_format["companion"] = character["companion"]
-    else:
-        if "child_character" in visual_descriptions_dict:
-            desired_format["child_character"] = visual_descriptions_dict[
-                "child_character"
-            ]
-            if child_image_uri:
-                desired_format["child_character"]["child_img_uri"] = child_image_uri
-        if "companion" in visual_descriptions_dict:
-            desired_format["companion"] = visual_descriptions_dict["companion"]
-
-    desired_format["illustration_style"] = visual_descriptions_dict.get(
-        "illustration_style", []
-    )
-
-    return desired_format
-
-
 def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         visual_descriptions = generate_visual_description(visual_configuration)
-        logging.info(f"Visual description generated: {visual_descriptions}")
-        visual_descriptions_dict = json.loads(visual_descriptions)
-        logging.debug(
-            f"Visual descriptions dict before transformation: {visual_descriptions_dict}"
-        )
-        if not is_in_desired_format(visual_descriptions_dict):
-            visual_descriptions_dict = transform_to_desired_format(
-                visual_descriptions_dict
-            )
-
-        logging.info(f"Transformed visual descriptions: {visual_descriptions_dict}")
-
-        child_prompt = generate_child_image_prompt(json.dumps(visual_descriptions_dict))
-        logging.info(f"Child image prompt generated successfully: {child_prompt}")
+        cleaned_str = visual_descriptions.replace("```json", "").replace("```", "").strip()
+        updated_visual_description = json.loads(cleaned_str)
+        # Log the raw output before parsing
+        logging.info("Raw visual description output: %s", visual_descriptions)
+        print("Updated visual description: ", updated_visual_description)
+        print("Updated visual description type: ", type(updated_visual_description))
+        # Generate the child image prompts
+        child_prompt = generate_child_image_prompt(json.dumps(updated_visual_description))
+        logging.info("Child image prompt generated successfully: %s", child_prompt)
 
         if child_prompt:
-            post_to_webhook(f"Child image prompt: {child_prompt}")
+            post_to_webhook("Child image prompt: %s" % child_prompt)
             mid_api_key = os.getenv("MID_API_KEY")
             generator = ImageGenerator(mid_api_key)
 
@@ -111,36 +66,35 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
 
                 if child_image_uris and child_image_uris[0]:
                     child_image_uri = child_image_uris[0]
-                    post_to_webhook(f"Child image URI generated: {child_image_uri}")
-                    logging.info(f"Posted child image to webhook: {child_image_uri}")
+                    post_to_webhook("Child image URI generated: %s" % child_image_uri)
+                    logging.info("Posted child image to webhook: %s", child_image_uri)
 
-                    updated_visual_descriptions = transform_to_desired_format(
-                        visual_descriptions_dict, child_image_uri
-                    )
-
+                    # Assuming the updated_visual_descriptions dict is updated later
+                    updated_visual_descriptions = updated_visual_description
+                    updated_visual_descriptions[2] = child_image_uri
                     logging.info(
-                        f"Updated visual descriptions: {updated_visual_descriptions}"
+                        "Updated visual descriptions: %s", updated_visual_descriptions
                     )
                     post_to_webhook(
-                        f"Updated visual descriptions: {updated_visual_descriptions}"
+                        "Updated visual descriptions: %s" % updated_visual_descriptions
                     )
 
                     data = generate_image_prompts(story, updated_visual_descriptions)
                     image_prompts = extract_output_image_prompts(data)
-                    post_to_webhook(f"Image prompts: {image_prompts}")
+                    post_to_webhook("Image prompts: %s" % image_prompts)
                     logging.info("Posted image prompts to webhook: %s", image_prompts)
 
                     async def run_async_tasks():
                         image_uris = await generator.generate_images(image_prompts)
                         page_labels_with_uris = {
-                            f"page_{idx:02d}": image_uri
+                            "page_%02d" % idx: image_uri
                             for idx, image_uri in enumerate(image_uris)
                             if image_uri
                         }
 
                         logging.info("Image generation complete")
                         post_to_webhook(
-                            f"Image URIs generated: {page_labels_with_uris}"
+                            "Image URIs generated: %s" % page_labels_with_uris
                         )
                         post_payload = {
                             "image_urls": page_labels_with_uris,

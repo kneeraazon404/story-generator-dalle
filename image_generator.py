@@ -15,7 +15,7 @@ class ImageGenerator:
 
     async def mymidjourney_imagine(self, prompt, session):
         try:
-            url = "https://api.mymidjourney.ai/api/v1/midjourney/imagine"
+            url = "https://api.imaginepro.ai/api/v1/midjourney/imagine"
             headers = {"Authorization": f"Bearer {self.api_key}"}
             data = {"prompt": prompt}
 
@@ -28,7 +28,7 @@ class ImageGenerator:
 
     async def check_image_status(self, message_id, session):
         try:
-            url = f"https://api.mymidjourney.ai/api/v1/midjourney/message/{message_id}"
+            url = f"https://api.imaginepro.ai/api/v1/midjourney/message/{message_id}"
             headers = {"Authorization": f"Bearer {self.api_key}"}
 
             async with session.get(url, headers=headers) as response:
@@ -42,7 +42,7 @@ class ImageGenerator:
         try:
             buttons = ["U1", "U2", "U3", "U4"]
             selected_button = random.choice(buttons)
-            url = "https://api.mymidjourney.ai/api/v1/midjourney/button"
+            url = "https://api.imaginepro.ai/api/v1/midjourney/button"
             headers = {"Authorization": f"Bearer {self.api_key}"}
             data = {"messageId": message_id, "button": selected_button}
 
