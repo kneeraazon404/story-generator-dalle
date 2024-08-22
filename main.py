@@ -71,7 +71,7 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
 
                     # Assuming the updated_visual_descriptions dict is updated later
                     updated_visual_descriptions = updated_visual_description
-                    updated_visual_descriptions[2] = child_image_uri
+                    updated_visual_descriptions[2] = {"child_image_uri": child_image_uri}
                     logging.info(
                         "Updated visual descriptions: %s", updated_visual_descriptions
                     )
