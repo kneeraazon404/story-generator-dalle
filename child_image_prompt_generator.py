@@ -1,9 +1,10 @@
+import json
+import logging
 import os
 import time
-import logging
+
 import dotenv
 import openai
-import json
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)

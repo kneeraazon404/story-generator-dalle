@@ -4,12 +4,14 @@ It also includes functionality to post responses to a webhook for further proces
 """
 
 import json
+import logging
 import os
 import time
-import logging
+
 import dotenv
 import openai
 from openai import OpenAI
+
 from post_to_webhook import post_to_webhook
 
 # Configure logging
