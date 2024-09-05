@@ -1,4 +1,7 @@
 # image_generator.py
+"""
+This module contains the ImageGenerator class, which is used to generate images using the ImaginePro API.
+"""
 import asyncio
 import logging
 import random

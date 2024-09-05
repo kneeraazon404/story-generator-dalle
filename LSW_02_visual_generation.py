@@ -1,3 +1,7 @@
+"""
+This module contains functions for generating visual descriptions using OpenAI's API.
+"""
+
 import json
 import logging
 import os
