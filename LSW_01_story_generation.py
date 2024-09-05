@@ -86,8 +86,10 @@ def generate_story(story_configuration):
             return json.loads(formatted_response)
         else:
             logging.error("No story response received")
+            post_to_webhook("No story response received")
             return {}
 
     except Exception as e:
         logging.error(f"Error in story generation: {e}")
+        post_to_webhook(f"Error in story generation: {e}")
         return {}

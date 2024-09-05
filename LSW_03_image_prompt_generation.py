@@ -1,6 +1,6 @@
 """
 This script is designed to interact with the OpenAI API to generate stories based on a given configuration.
-It also includes functionality to post responses to a webhook for further processing or logging.
+This also includes functionality to post responses to a webhook for further processing or logging.
 """
 
 import json

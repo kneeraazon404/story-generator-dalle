@@ -99,29 +99,19 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
                             % updated_visual_descriptions
                         )
 
-                        response_prompts = generate_image_prompts(
+                        generated_response = generate_image_prompts(
                             story, updated_visual_descriptions
                         )
 
-                        print(type(response_prompts))
-
                         # logging.info("Image prompts RAW: %s", image_prompts)
-                        post_to_webhook("Image prompts RAW: %s" % response_prompts)
-                        # convert the json image prompts to a list of strings withe value of each key
-                        # image_prompts_json = [
-                        #     json.dumps(image_prompt)
-                        #     for image_prompt in response_prompts
-                        # ]
+                        post_to_webhook("Image prompts RAW: %s" % generated_response)
 
-                        print(type(response_prompts))
+                        image_prompts = list(
+                            generated_response["image_prompts"].values()
+                        )
 
-                        logging.info("Image prompts JSON: %s", response_prompts)
-
-                        image_prompts = list(response_prompts["image_prompts"].values())
-
-                        print(type(image_prompts))
                         logging.info("Image prompts list: %s", image_prompts)
-
+                        post_to_webhook("Image prompts list: %s" % image_prompts)
                         image_uris = await generator.generate_images(image_prompts)
                         page_labels_with_uris = {
                             f"page_{idx:02d}": image_uri

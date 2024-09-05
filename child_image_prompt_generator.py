@@ -1,3 +1,7 @@
+"""
+This module contains a function to generate a child image prompt based on the provided story configuration using OpenAI's API.
+"""
+
 import json
 import logging
 import os
