@@ -1,9 +1,10 @@
 # image_generator.py
-import aiohttp
 import asyncio
+import logging
 import random
 import time
-import logging
+
+import aiohttp
 
 
 class ImageGenerator:

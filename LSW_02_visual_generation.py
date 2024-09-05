@@ -1,9 +1,11 @@
-import openai
-import os
-import time
 import json
 import logging
+import os
+import time
+
 import dotenv
+import openai
+
 from post_to_webhook import post_to_webhook
 
 # Configure logging
@@ -56,10 +58,14 @@ def generate_visual_description(visual_configuration):
 
         # Retrieve the assistant's response
         messages = client.beta.threads.messages.list(thread_id=thread.id).data
+        logging.info("Raw Visual description messages: %s", messages)
+        post_to_webhook(f"Raw Visual description messages: {messages}")
         assistant_response = next(
             (msg.content[0].text.value for msg in messages if msg.role == "assistant"),
             None,
         )
+        logging.info("Parsed Visual description response: %s", assistant_response)
+        post_to_webhook(f"Parsed Visual description response: {assistant_response}")
 
         return (
             assistant_response
@@ -69,4 +75,5 @@ def generate_visual_description(visual_configuration):
 
     except Exception as e:
         logging.error(f"Error in generating visual description: {e}")
+        post_to_webhook(f"Error in generating visual description: {e}")
         return None

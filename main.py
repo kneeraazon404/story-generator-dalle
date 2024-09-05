@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import traceback
 from threading import Thread
 
 import dotenv
@@ -45,49 +46,85 @@ class StoryData(db.Model):
 def generate_and_post_images(tripetto_id, story, visual_configuration):
     try:
         visual_descriptions = generate_visual_description(visual_configuration)
-        cleaned_str = visual_descriptions.replace("```json", "").replace("```", "").strip()
+        cleaned_str = (
+            visual_descriptions.replace("```json", "").replace("```", "").strip()
+        )
         updated_visual_description = json.loads(cleaned_str)
-        # Log the raw output before parsing
-        logging.info("Raw visual description output: %s", visual_descriptions)
-        print("Updated visual description: ", updated_visual_description)
-        print("Updated visual description type: ", type(updated_visual_description))
+        logging.info(
+            "Visual description Jsonified successfully: %s", updated_visual_description
+        )
+        post_to_webhook(
+            f"Visual description Jsonified successfully: {updated_visual_description}"
+        )
+
         # Generate the child image prompts
-        child_prompt = generate_child_image_prompt(json.dumps(updated_visual_description))
+        child_prompt = generate_child_image_prompt(
+            json.dumps(updated_visual_description)
+        )
         logging.info("Child image prompt generated successfully: %s", child_prompt)
 
         if child_prompt:
             post_to_webhook("Child image prompt: %s" % child_prompt)
             mid_api_key = os.getenv("MID_API_KEY")
+            if not mid_api_key:
+                raise EnvironmentError("MID_API_KEY environment variable not found.")
+
             generator = ImageGenerator(mid_api_key)
 
             async def generate_and_post_child_image():
-                child_image_uris = await generator.generate_images(child_prompt)
-                logging.info("Child image generation complete")
+                try:
+                    child_image_uris = await generator.generate_images(child_prompt)
+                    logging.info("Child image generation complete")
 
-                if child_image_uris and child_image_uris[0]:
-                    child_image_uri = child_image_uris[0]
-                    post_to_webhook("Child image URI generated: %s" % child_image_uri)
-                    logging.info("Posted child image to webhook: %s", child_image_uri)
+                    if child_image_uris and child_image_uris[0]:
+                        child_image_uri = child_image_uris[0]
+                        post_to_webhook(
+                            "Child image URI generated: %s" % child_image_uri
+                        )
+                        logging.info(
+                            "Posted child image to webhook: %s", child_image_uri
+                        )
 
-                    # Assuming the updated_visual_descriptions dict is updated later
-                    updated_visual_descriptions = updated_visual_description
-                    updated_visual_descriptions[2] = {"child_image_uri": child_image_uri}
-                    logging.info(
-                        "Updated visual descriptions: %s", updated_visual_descriptions
-                    )
-                    post_to_webhook(
-                        "Updated visual descriptions: %s" % updated_visual_descriptions
-                    )
+                        # Assuming the updated_visual_descriptions dict is updated later
+                        updated_visual_descriptions = updated_visual_description
+                        updated_visual_descriptions[2] = {
+                            "child_image_uri": child_image_uri
+                        }
+                        logging.info(
+                            "Updated visual descriptions: %s",
+                            updated_visual_descriptions,
+                        )
+                        post_to_webhook(
+                            "Updated visual descriptions: %s"
+                            % updated_visual_descriptions
+                        )
 
-                    data = generate_image_prompts(story, updated_visual_descriptions)
-                    image_prompts = extract_output_image_prompts(data)
-                    post_to_webhook("Image prompts: %s" % image_prompts)
-                    logging.info("Posted image prompts to webhook: %s", image_prompts)
+                        response_prompts = generate_image_prompts(
+                            story, updated_visual_descriptions
+                        )
 
-                    async def run_async_tasks():
+                        print(type(response_prompts))
+
+                        # logging.info("Image prompts RAW: %s", image_prompts)
+                        post_to_webhook("Image prompts RAW: %s" % response_prompts)
+                        # convert the json image prompts to a list of strings withe value of each key
+                        # image_prompts_json = [
+                        #     json.dumps(image_prompt)
+                        #     for image_prompt in response_prompts
+                        # ]
+
+                        print(type(response_prompts))
+
+                        logging.info("Image prompts JSON: %s", response_prompts)
+
+                        image_prompts = list(response_prompts["image_prompts"].values())
+
+                        print(type(image_prompts))
+                        logging.info("Image prompts list: %s", image_prompts)
+
                         image_uris = await generator.generate_images(image_prompts)
                         page_labels_with_uris = {
-                            "page_%02d" % idx: image_uri
+                            f"page_{idx:02d}": image_uri
                             for idx, image_uri in enumerate(image_uris)
                             if image_uri
                         }
@@ -105,36 +142,40 @@ def generate_and_post_images(tripetto_id, story, visual_configuration):
                             "User-Agent": "Mozilla/5.0",
                         }
                         url = "https://littlestorywriter.com/img-upload"
-
-                        post_to_webhook(post_payload)
                         response = requests.post(
                             url, json=post_payload, headers=headers
                         )
-                        response.raise_for_status()
+                        if response.status_code == 200:
+                            logging.info("Image posting complete")
+                            post_to_webhook("Image posting complete")
+                        else:
+                            logging.error(
+                                "Failed to post image URIs. Status: %d, Response: %s",
+                                response.status_code,
+                                response.content,
+                            )
 
-                    def thread_target():
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        loop.run_until_complete(run_async_tasks())
-                        loop.close()
+                    else:
+                        logging.warning("No valid child image URI generated.")
+                        post_to_webhook("No valid child image URI generated.")
 
-                    thread = Thread(target=thread_target)
-                    thread.start()
-                    thread.join()
-                    logging.info("Image posting complete")
+                except Exception as e:
+                    logging.error(
+                        "An error occurred during image generation and posting: %s", e
+                    )
+                    post_to_webhook("An error occurred: %s" % e)
 
-                else:
-                    logging.warning("No valid child image URI generated.")
-
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(generate_and_post_child_image())
-            loop.close()
+            asyncio.run(generate_and_post_child_image())
 
         else:
             logging.warning("No valid child image prompt found.")
+            post_to_webhook("No valid child image prompt found.")
     except Exception as e:
         logging.error("An error occurred during image generation and posting: %s", e)
+        logging.error("Traceback: %s", traceback.format_exc())
+        post_to_webhook(
+            "An error occurred: %s\nTraceback: %s" % (e, traceback.format_exc())
+        )
 
 
 # Global exception handler for the Flask app
@@ -212,6 +253,7 @@ def process_story():
         )
     except Exception as e:
         logging.error(f"An error occurred: {e}")
+        post_to_webhook(f"An error occurred: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
 
 
@@ -232,6 +274,8 @@ def get_story_data(tripetto_id):
         )
 
     except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        post_to_webhook(f"An error occurred: {e}")
         return handle_exception(e)
 
 
