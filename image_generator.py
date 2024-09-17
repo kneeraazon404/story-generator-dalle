@@ -59,7 +59,7 @@ class ImageGenerator:
             logging.error(f"Error in button action: {e}")
             return None
 
-    async def wait_for_image_ready(self, message_id, session, timeout=120, interval=10):
+    async def wait_for_image_ready(self, message_id, session, timeout=200, interval=10):
         start_time = time.time()
         while time.time() - start_time < timeout:
             status_result = await self.check_image_status(message_id, session)
